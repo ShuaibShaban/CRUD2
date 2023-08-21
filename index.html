@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+    <title>CRUD Operations with TailwindCSS</title>
+  </head>
+
+  <body class="bg-gray-100 p-8">
+    <div class="max-w-md mx-auto bg-white p-6 rounded-md shadow-md">
+      <h2 class="text-2xl mb-4">CRUD Operations</h2>
+
+      <div>
+        <input
+          type="text"
+          id="postTitle"
+          placeholder="Title"
+          class="mb-2 p-2 w-full border rounded-md"
+        />
+        <textarea
+          id="postBody"
+          rows="4"
+          placeholder="Body"
+          class="mb-4 p-2 w-full border rounded-md"
+        ></textarea>
+
+        <button
+          id="actionButton"
+          onclick="createPost()"
+          class="bg-blue-500 text-white px-4 py-2 rounded-md"
+        >
+          Create Post
+        </button>
+      </div>
+
+      <div id="postsContainer" class="mt-4"></div>
+    </div>
+
+    <script>
+
+      const BASE_URL = "https://jsonplaceholder.typicode.com/posts";
+
+      function createPostElement(post) {
+        const postElem = document.createElement("div");
+        postElem.classList.add("mt-4", "p-4", "border", "rounded-md");
+
+        postElem.innerHTML = `
+                <strong>${post.title}</strong>
+                <p>${post.body}</p>
+                <button onclick="editPost(${post.id})" class="bg-yellow-500 text-white px-2 py-1 rounded-md">Update</button>
+                <button onclick="deletePost(${post.id}, this)" class="bg-red-500 text-white px-2 py-1 rounded-md ml-2">Delete</button>
+            `;
+
+        document.getElementById("postsContainer").prepend(postElem);
+      }
+
+      function createPost() {
+        const title = document.getElementById("postTitle").value;
+        const body = document.getElementById("postBody").value;
+
+        fetch(BASE_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: title,
+            body: body,
+            userId: 1,
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            createPostElement(data);
+            document.getElementById("postTitle").value = "";
+            document.getElementById("postBody").value = "";
+          });
+      }
+      function editPost(postId) {
+        // Get the post details directly from the displayed list instead of fetching them again.
+        const postElem = document.querySelector(`[data-post-id='${postId}']`);
+        const title = postElem.querySelector(".post-title").innerText;
+        const body = postElem.querySelector(".post-body").innerText;
+
+        document.getElementById("postTitle").value = title;
+        document.getElementById("postBody").value = body;
+
+        // Let's repurpose the create button for updating
+        const createBtn = document.querySelector("[onclick='createPost()']");
+        createBtn.innerText = "Update Post";
+        createBtn.onclick = function () {
+          updatePost(postId, postElem);
+        };
+      }
+
+      function updatePost(postId, postElement) {
+        const title = document.getElementById("postTitle").value;
+        const body = document.getElementById("postBody").value;
+
+        fetch(`https://jsonplaceholder.typicode.com/posts${postId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: postId,
+            title: title,
+            body: body,
+            userId: 1,
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            // Update the post in the UI
+            postElement.querySelector(".post-title").innerText = title;
+            postElement.querySelector(".post-body").innerText = body;
+
+            // Reset input fields and button
+            document.getElementById("postTitle").value = "";
+            document.getElementById("postBody").value = "";
+            const btn = document.querySelector("[onclick^='updatePost']");
+            btn.innerText = "Create Post";
+            btn.onclick = createPost;
+          });
+      }
+
+      // Updated createPostElement function:
+      function createPostElement(post) {
+        const postElem = document.createElement("div");
+        postElem.classList.add("mt-4", "p-4", "border", "rounded-md");
+        postElem.setAttribute("data-post-id", post.id);
+
+        postElem.innerHTML = `
+        <strong class="post-title">${post.title}</strong>
+        <p class="post-body">${post.body}</p>
+        <button onclick="editPost(${post.id})" class="bg-yellow-500 text-white px-2 py-1 rounded-md">Update</button>
+        <button onclick="deletePost(${post.id}, this)" class="bg-red-500 text-white px-2 py-1 rounded-md ml-2">Delete</button>
+    `;
+
+        document.getElementById("postsContainer").prepend(postElem);
+      }
+
+      function deletePost(postId, btnElement) {
+        fetch(`${BASE_URL}/${postId}`, {
+          method: "DELETE",
+        }).then(() => {
+          // Remove the post from the UI
+          const postElem = btnElement.parentElement;
+          postElem.remove();
+        });
+      }
+    </script>
+  </body>
+</html>
